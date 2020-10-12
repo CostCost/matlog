@@ -60,7 +60,9 @@ public class SuperUserHelper {
     }
 
     private static boolean haveReadLogsPermission(Context context) {
-        return context.getPackageManager().checkPermission("android.permission.READ_LOGS", context.getPackageName()) == PackageManager.PERMISSION_GRANTED;
+        // 检查是否有 READ_LOGS 权限
+        return context.getPackageManager().checkPermission("android.permission.READ_LOGS",
+                context.getPackageName()) == PackageManager.PERMISSION_GRANTED;
     }
 
     private static List<Integer> getAllRelatedPids(final int pid) {
@@ -161,6 +163,7 @@ public class SuperUserHelper {
 
         Process process = null;
         try {
+            // 尝试获取 root 权限的逻辑就是：使用 su 命令！！！！
             // Preform su to get root privileges
             process = Runtime.getRuntime().exec("su");
 
@@ -174,6 +177,7 @@ public class SuperUserHelper {
 
             process.waitFor();
             if (process.exitValue() != 0) {
+                // 显示获取日志 adb 指令对话框
                 showWarningDialog(context);
                 failedToObtainRoot = true;
             } else {

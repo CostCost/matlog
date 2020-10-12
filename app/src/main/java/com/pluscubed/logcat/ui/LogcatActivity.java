@@ -98,6 +98,7 @@ import static com.pluscubed.logcat.data.LogLineViewHolder.CONTEXT_MENU_FILTER_ID
 
 public class LogcatActivity extends BaseActivity implements FilterListener, LogLineViewHolder.OnClickListener {
 
+    // region 变量们
     private static final int REQUEST_CODE_SETTINGS = 1;
 
     // how often to check to see if we've gone over the max size
@@ -140,6 +141,7 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
 
     private Handler mHandler;
     private MenuItem mSearchViewMenuItem;
+    // endregion
 
     public static void startChooser(Context context, String subject, String body, SendLogDetails.AttachmentType attachmentType, File attachment) {
 
@@ -376,6 +378,7 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
         startMainLog();
     }
 
+    // region 设置
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -423,6 +426,7 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
         });
 
     }
+    // endregion
 
     private void startMainLog() {
         Runnable mainLogRunnable = () -> {
@@ -466,30 +470,6 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
         }
     }
 
-    private void populateSuggestionsAdapter(String query) {
-        final MatrixCursor c = new MatrixCursor(new String[]{BaseColumns._ID, "suggestion"});
-        List<String> suggestionsForQuery = getSuggestionsForQuery(query);
-        for (int i = 0, suggestionsForQuerySize = suggestionsForQuery.size(); i < suggestionsForQuerySize; i++) {
-            String suggestion = suggestionsForQuery.get(i);
-            c.addRow(new Object[]{i, suggestion});
-        }
-        mSearchSuggestionsAdapter.changeCursor(c);
-    }
-
-    private List<String> getSuggestionsForQuery(String query) {
-        List<String> suggestions = new ArrayList<>(mSearchSuggestionsSet);
-        Collections.sort(suggestions, String.CASE_INSENSITIVE_ORDER);
-        List<String> actualSuggestions = new ArrayList<>();
-        if (query != null) {
-            for (String suggestion : suggestions) {
-                if (suggestion.toLowerCase().startsWith(query.toLowerCase())) {
-                    actualSuggestions.add(suggestion);
-                }
-            }
-        }
-        return actualSuggestions;
-    }
-
     @Override
     public void onBackPressed() {
         if (mSearchViewMenuItem != null && mSearchViewMenuItem.isActionViewExpanded()) {
@@ -501,6 +481,7 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
         }
     }
 
+    // region 菜单相关
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         invalidateDarkOrLightMenuItems(this, menu);
@@ -1559,7 +1540,9 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
         mLogListAdapter.setLogLevelLimit(logLevelLimit);
         logLevelChanged();
     }
+    // endregion
 
+    // region loglevel
     private void showLogLevelDialog() {
         String[] logLevels = getResources().getStringArray(R.array.log_levels);
 
@@ -1582,6 +1565,7 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
 
         builder.show();
     }
+    // endregion
 
     private void setUpAdapter() {
 
@@ -1618,6 +1602,7 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
         ((RecyclerView) findViewById(R.id.list)).setHasFixedSize(true);
     }
 
+    // region 选择
     private void completePartialSelect() {
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -1669,6 +1654,32 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
             mHandler.post(mLogListAdapter::notifyDataSetChanged);
         }
     }
+    // endregion
+
+    // region 搜索
+    private void populateSuggestionsAdapter(String query) {
+        final MatrixCursor c = new MatrixCursor(new String[]{BaseColumns._ID, "suggestion"});
+        List<String> suggestionsForQuery = getSuggestionsForQuery(query);
+        for (int i = 0, suggestionsForQuerySize = suggestionsForQuery.size(); i < suggestionsForQuerySize; i++) {
+            String suggestion = suggestionsForQuery.get(i);
+            c.addRow(new Object[]{i, suggestion});
+        }
+        mSearchSuggestionsAdapter.changeCursor(c);
+    }
+
+    private List<String> getSuggestionsForQuery(String query) {
+        List<String> suggestions = new ArrayList<>(mSearchSuggestionsSet);
+        Collections.sort(suggestions, String.CASE_INSENSITIVE_ORDER);
+        List<String> actualSuggestions = new ArrayList<>();
+        if (query != null) {
+            for (String suggestion : suggestions) {
+                if (suggestion.toLowerCase().startsWith(query.toLowerCase())) {
+                    actualSuggestions.add(suggestion);
+                }
+            }
+        }
+        return actualSuggestions;
+    }
 
     private void setSearchText(String text) {
         // sets the search text without invoking autosuggestions, which are really only useful when typing
@@ -1683,6 +1694,12 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
         mSearchingString = filterText;
     }
 
+    private void logLevelChanged() {
+        search(mSearchingString);
+    }
+    // endregion
+
+    // region 日志相关
     private void pauseOrUnpause(MenuItem item) {
         LogReaderAsyncTask currentTask = mTask;
 
@@ -1696,34 +1713,10 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
             }
         }
     }
+    // endregion
 
 
-    @Override
-    public void onFilterComplete(int count) {
-        // always scroll to the bottom when searching
-        ((RecyclerView) findViewById(R.id.list)).scrollToPosition(count - 1);
-
-    }
-
-
-    private void logLevelChanged() {
-        search(mSearchingString);
-    }
-
-    private void updateBackgroundColor() {
-        ColorScheme colorScheme = PreferenceHelper.getColorScheme(this);
-
-        final int color = colorScheme.getBackgroundColor(LogcatActivity.this);
-
-        mHandler.post(() -> findViewById(R.id.main_background).setBackgroundColor(color));
-
-        //TODO:
-        //mListView.setCacheColorHint(color);
-        //mListView.setDivider(new ColorDrawable(color));
-
-    }
-
-
+    // region 搜索建议
     private void addToAutocompleteSuggestions(LogLine logLine) {
         // add the tags to the autocompletetextview
 
@@ -1741,7 +1734,9 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
             //searchSuggestionsAdapter.add(trimmed);
         }
     }
+    // endregion
 
+    // region 主题相关
     @SuppressLint("RestrictedApi")
     public void invalidateDarkOrLightMenuItems(Context context, Menu menu) {
         if (menu instanceof MenuBuilder) {
@@ -1764,9 +1759,31 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
         }
     }
 
+    private void updateBackgroundColor() {
+        ColorScheme colorScheme = PreferenceHelper.getColorScheme(this);
+
+        final int color = colorScheme.getBackgroundColor(LogcatActivity.this);
+
+        mHandler.post(() -> findViewById(R.id.main_background).setBackgroundColor(color));
+
+        //TODO:
+        //mListView.setCacheColorHint(color);
+        //mListView.setDivider(new ColorDrawable(color));
+
+    }
+    // endregion
+
+    // region rv
     private void scrollToBottom() {
         ((RecyclerView) findViewById(R.id.list)).scrollToPosition(mLogListAdapter.getItemCount() - 1);
     }
+
+    @Override
+    public void onFilterComplete(int count) {
+        // always scroll to the bottom when searching
+        ((RecyclerView) findViewById(R.id.list)).scrollToPosition(count - 1);
+    }
+    // endregion
 
     @SuppressLint("StaticFieldLeak")
     private class LogReaderAsyncTask extends AsyncTask<Void, LogLine, Void> {
@@ -1779,6 +1796,7 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
         private LogcatReader mReader;
         private Runnable mOnFinishedRunnable;
 
+        // region ui
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
@@ -1789,6 +1807,7 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
             showProgressBar();
             ((CircularProgressBar) findViewById(R.id.main_progress_bar)).enableIndeterminateMode(true);
         }
+        // endregion
 
         @Override
         protected Void doInBackground(Void... params) {
@@ -1799,7 +1818,7 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
                 // for a performance boost
                 LogcatReaderLoader loader = LogcatReaderLoader.create(LogcatActivity.this, true);
                 mReader = loader.loadReader();
-
+                // TODO 刚打开 log 的时候会存在大量的日志涌进来
                 int maxLines = PreferenceHelper.getDisplayLimitPreference(LogcatActivity.this);
 
                 String line;
@@ -1860,6 +1879,7 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
             doWhenFinished();
         }
 
+        // TODO 获取到日志信息之后的逻辑
         @Override
         protected void onProgressUpdate(LogLine... values) {
             super.onProgressUpdate(values);
@@ -1921,7 +1941,5 @@ public class LogcatActivity extends BaseActivity implements FilterListener, LogL
         private void setOnFinished(Runnable onFinished) {
             this.mOnFinishedRunnable = onFinished;
         }
-
-
     }
 }
